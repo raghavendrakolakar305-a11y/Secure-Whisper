@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Create source package
+        shell: bash
+        run: |
+          mkdir -p release
+          zip -r "release/secure-whisper-source-${GITHUB_REF_NAME}.zip" . -x '.git/*' 'node_modules/*' 'server/node_modules/*' 'dist/*' 'server/.env' 'server/data.db' 'release/*' '*.log' '.env*'
+      - name: Create frontend package
+        shell: bash
+        run: |
+          cd dist
+          zip -r "../release/secure-whisper-frontend-${GITHUB_REF_NAME}.zip" .
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release/*.zip
