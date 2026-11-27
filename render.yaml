@@ -1,9 +1,8 @@
 services:
-  # Backend API Service
   - type: web
     name: securechat-backend
     env: node
-    buildCommand: cd server && npm install
+    buildCommand: cd server && npm ci
     startCommand: cd server && npm start
     envVars:
       - key: JWT_SECRET
@@ -13,24 +12,4 @@ services:
       - key: PORT
         value: 4000
       - key: MONGODB_URI
-        fromDatabase:
-          name: securechat-db
-          property: connectionString
-  
-  # Frontend Web Service
-  - type: web
-    name: securechat-frontend
-    env: node
-    buildCommand: npm install && npm run build
-    startCommand: npx serve -s dist -l 10000
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: securechat-backend
-          property: host
-
-databases:
-  - name: securechat-db
-    databaseName: mingleup
-    plan: free
+        sync: false

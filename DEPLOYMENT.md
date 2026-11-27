@@ -1,6 +1,6 @@
-# Deployment Guide for SecureChat
+# Deployment Guide for Secure Whisper
 
-This guide covers deploying SecureChat to Render or similar platforms.
+This guide covers deploying the frontend to Vercel and the persistent API/WebSocket backend to Render.
 
 ## Project Structure
 
@@ -9,109 +9,33 @@ This guide covers deploying SecureChat to Render or similar platforms.
 
 ## Prerequisites
 
-- MongoDB database (Render provides this)
-- Node.js 18+
-- Git repository
+- A MongoDB Atlas cluster and connection string
+- GitHub repository access
+- Vercel and Render accounts
 
-## Deployment Steps
+## 1. Deploy the backend to Render
 
-### 1. Prepare Environment Variables
+1. In Render, choose **New → Blueprint** and select this GitHub repository.
+2. Render reads `render.yaml` and creates the `securechat-backend` web service.
+3. Set `MONGODB_URI` to the MongoDB Atlas connection string in the service's environment settings. Ensure Atlas allows connections from Render.
+4. Keep the generated `JWT_SECRET` and `ENCRYPTION_KEY` values private.
+5. Wait for the service to become live and verify `https://<backend-host>/api/health` returns `{"ok":true}`.
 
-#### Frontend Environment Variables
-Set the following in your deployment platform:
+Render's Blueprint does not provision MongoDB. Use MongoDB Atlas or another MongoDB-compatible managed service.
 
-```
-VITE_API_URL=https://your-backend-url.onrender.com
-```
+## 2. Deploy the frontend to Vercel
 
-#### Backend Environment Variables
-Set the following in your deployment platform:
+1. In Vercel, import this GitHub repository. Keep the project root as the root directory.
+2. Use the Vite framework preset, build command `npm run build`, and output directory `dist` (also configured in `vercel.json`).
+3. Add the environment variable `VITE_API_URL` with the full HTTPS URL of the Render backend, for example `https://securechat-backend.onrender.com`.
+4. Deploy or redeploy after setting the variable. The frontend derives the secure WebSocket URL from this API URL.
 
-```
-JWT_SECRET=<generate-a-random-secret>
-ENCRYPTION_KEY=<32-byte-key-for-encryption>
-PORT=4000
-MONGODB_URI=<from-database-connection-string>
-```
+## 3. Post-deployment checks
 
-### 2. Render.com Deployment
-
-#### Option A: Using Blueprint (render.yaml)
-
-1. Connect your GitHub repository to Render
-2. Select "New Blueprint" deployment
-3. Render will automatically use `render.yaml` and create:
-   - Backend service (securechat-backend)
-   - Frontend service (securechat-frontend)
-   - MongoDB database (securechat-db)
-
-#### Option B: Manual Deployment
-
-##### Backend Service
-
-1. Create new "Web Service"
-2. Connect your repository
-3. Configure:
-   - **Build Command**: `cd server && npm install`
-   - **Start Command**: `cd server && npm start`
-   - **Environment**: Node
-   - **Instance Type**: Free tier or higher
-4. Add environment variables (see above)
-
-##### Frontend Service
-
-1. Create new "Static Site" or "Web Service"
-2. For Static Site:
-   - **Build Command**: `npm install && npm run build`
-   - **Publish Directory**: `dist`
-   - **Environment**: Node
-3. For Web Service (if needed):
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npx serve -s dist`
-   - **Environment**: Node
-
-##### MongoDB Database
-
-1. Create new "MongoDB" database
-2. Copy connection string to `MONGODB_URI` in backend environment variables
-3. Database name: `mingleup`
-
-### 3. Environment Configuration
-
-#### Development
-```bash
-# Frontend - Create .env.local
-VITE_API_URL=http://localhost:4000
-
-# Backend - Create server/.env
-JWT_SECRET=dev_secret
-ENCRYPTION_KEY=dev_32_byte_key_for_demo!!1
-PORT=4000
-MONGODB_URI=mongodb://localhost:27017/mingleup
-```
-
-#### Production
-Set environment variables in your deployment platform's dashboard:
-- VITE_API_URL → Backend service URL
-- JWT_SECRET → Generate a secure random string
-- ENCRYPTION_KEY → 32-byte encryption key
-- MONGODB_URI → Database connection string
-
-### 4. WebSocket Configuration
-
-The application uses WebSockets for real-time messaging. Ensure:
-- Your deployment platform supports WebSocket connections
-- Render.com supports WebSockets on the free tier
-- The WebSocket URL is configured correctly (automatic with render.yaml)
-
-### 5. Post-Deployment Checks
-
-1. ✅ Backend health check: `https://your-backend.onrender.com/api/health`
-2. ✅ Frontend loads correctly
-3. ✅ User registration works
-4. ✅ User login works
-5. ✅ WebSocket connections work (check browser console)
-6. ✅ Messages send and receive in real-time
+- Backend health check returns `{"ok":true}`.
+- Frontend routes such as `/chat` load directly or after refresh.
+- Registration and login work.
+- WebSocket connections work and messages send/receive in real time.
 
 ## Troubleshooting
 
